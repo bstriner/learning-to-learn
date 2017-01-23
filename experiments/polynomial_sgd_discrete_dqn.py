@@ -56,7 +56,7 @@ def main(argv):
     filename = 'dqn_{}_weights.h5f'.format(ENV_NAME)
     if args.train:
         visualize = False
-        history = dqn.fit(env, nb_steps=50000, visualize=visualize, verbose=2)
+        history = dqn.fit(env, nb_steps=100000, visualize=visualize, verbose=2)
         pd.DataFrame(history.history).to_csv("dqn_history.csv")
         # After training is done, we save the final weights.
         dqn.save_weights(filename, overwrite=True)
