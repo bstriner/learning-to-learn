@@ -24,6 +24,12 @@ def main(argv):
     parser.add_argument('--train', action="store_true", help='train the model')
     parser.add_argument('--test', action='store_true', help='test the model')
     parser.add_argument('--retrain', action='store_true', help='retrain the model')
+    parser.add_argument('--steps', nargs="?", default=100000, type=int, action='store',
+                        help='number of steps to train')
+    parser.add_argument('--memory', nargs="?", default=5000, type=int, action='store',
+                        help='memory size (default=5000)')
+    parser.add_argument('--dest', nargs="?", default='dqn_weights.h5', action='store',
+                        help='destination file')
     args = parser.parse_args(argv)
 
     # Get the environment and extract the number of actions.
@@ -32,7 +38,7 @@ def main(argv):
     env.seed(123)
     nb_actions = env.action_space.n
 
-    memory_limit = 5000
+    memory_limit = args.memory
     window_length = 2
     # Next, we build a very simple model.
     model = Sequential()
@@ -59,27 +65,27 @@ def main(argv):
     # Okay, now it's time to learn something! We visualize the training here for show, but this
     # slows down training quite a lot. You can always safely abort the training prematurely using
     # Ctrl + C.
-    filename = 'dqn_{}_weights.h5f'.format(ENV_NAME)
+
     visualize = False
     if args.train:
-        history = dqn.fit(env, nb_steps=500000, visualize=visualize, verbose=2)
+        history = dqn.fit(env, nb_steps=args.steps, visualize=visualize, verbose=2)
         pd.DataFrame(history.history).to_csv("dqn_history.csv")
-        dqn.save_weights(filename, overwrite=True)
+        dqn.save_weights(args.dest, overwrite=True)
 
     if args.retrain:
-        dqn.load_weights(filename)
-        history = dqn.fit(env, nb_steps=500000, visualize=visualize, verbose=2)
+        dqn.load_weights(args.dest)
+        history = dqn.fit(env, nb_steps=args.steps, visualize=visualize, verbose=2)
         pd.DataFrame(history.history).to_csv("dqn_history.csv")
-        dqn.save_weights(filename, overwrite=True)
+        dqn.save_weights(args.dest, overwrite=True)
 
     if args.test:
         # Finally, evaluate our algorithm for 5 episodes.
-        #env = wrappers.Monitor(env, 'output/polynomial-sgd-discrete-dqn', force=True)
+        # env = wrappers.Monitor(env, 'output/polynomial-sgd-discrete-dqn', force=True)
         dr = DataRecorder(env)
-        dqn.load_weights(filename)
+        dqn.load_weights(args.dest)
         dqn.test(dr, nb_episodes=5, visualize=True)
         names = ["epoch", "iteration"] + env.observation_names() + ["reward", "done"]
-        df = pd.DataFrame(dr.data_frame(names, lambda x: [x[0], x[1]] + list(x[2])+[x[3], x[4]]))
+        df = pd.DataFrame(dr.data_frame(names, lambda x: [x[0], x[1]] + list(x[2]) + [x[3], x[4]]))
         df.to_csv("polynomial-sgd-discrete-dqn.csv")
 
 
