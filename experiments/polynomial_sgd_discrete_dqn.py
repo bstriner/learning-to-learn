@@ -59,7 +59,7 @@ def main(argv):
     memory = SequentialMemory(limit=memory_limit, window_length=window_length)
     policy = BoltzmannQPolicy()
     dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=memory_limit,
-                   target_model_update=1e-2, policy=policy)
+                   target_model_update=1e-3, policy=policy)
     dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 
     # Okay, now it's time to learn something! We visualize the training here for show, but this
