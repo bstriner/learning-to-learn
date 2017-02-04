@@ -24,6 +24,7 @@ def main(argv):
     parser.add_argument('--train', action="store_true", help='train the model')
     parser.add_argument('--test', action='store_true', help='test the model')
     parser.add_argument('--retrain', action='store_true', help='retrain the model')
+    parser.add_argument('--verbose', action='store_true', help='verbose')
     parser.add_argument('--steps', nargs="?", default=100000, type=int, action='store',
                         help='number of steps to train')
     parser.add_argument('--memory', nargs="?", default=5000, type=int, action='store',
@@ -37,7 +38,9 @@ def main(argv):
     np.random.seed(123)
     env.seed(123)
     nb_actions = env.action_space.n
-
+    verbose = 1 if args.verbose else 0
+    env.env.verbose=verbose
+    print("options: {}".format(args))
     memory_limit = args.memory
     window_length = 2
     # Next, we build a very simple model.
