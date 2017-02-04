@@ -15,7 +15,7 @@ from keras.optimizers import Adam
 from rl.agents.dqn import DQNAgent
 from rl.policy import BoltzmannQPolicy
 from rl.memory import SequentialMemory
-
+import os
 ENV_NAME = 'SGD-Polynomial-Discrete-v0'
 
 
@@ -29,10 +29,12 @@ def main(argv):
                         help='number of steps to train')
     parser.add_argument('--memory', nargs="?", default=5000, type=int, action='store',
                         help='memory size (default=5000)')
-    parser.add_argument('--dest', nargs="?", default='dqn_weights.h5', action='store',
+    parser.add_argument('--dest', nargs="?", default='output/polynomial_sgd_discrete/dqn', action='store',
                         help='destination file')
     args = parser.parse_args(argv)
-
+    path = os.path.dirname(os.path.abspath(args.dest))
+    if not os.path.exists(path):
+        os.makedirs(path)
     # Get the environment and extract the number of actions.
     env = gym.make(ENV_NAME)
     np.random.seed(123)
@@ -70,26 +72,28 @@ def main(argv):
     # Ctrl + C.
 
     visualize = False
+    csvpath = "{}.csv".format(args.dest)
+    h5path = "{}.h5".format(args.dest)
     if args.train:
         history = dqn.fit(env, nb_steps=args.steps, visualize=visualize, verbose=2)
-        pd.DataFrame(history.history).to_csv("dqn_history.csv")
-        dqn.save_weights(args.dest, overwrite=True)
+        pd.DataFrame(history.history).to_csv(csvpath)
+        dqn.save_weights(h5path, overwrite=True)
 
     if args.retrain:
-        dqn.load_weights(args.dest)
+        dqn.load_weights(h5path)
         history = dqn.fit(env, nb_steps=args.steps, visualize=visualize, verbose=2)
-        pd.DataFrame(history.history).to_csv("dqn_history.csv")
-        dqn.save_weights(args.dest, overwrite=True)
+        pd.DataFrame(history.history).to_csv(csvpath)
+        dqn.save_weights(h5path, overwrite=True)
 
     if args.test:
         # Finally, evaluate our algorithm for 5 episodes.
         # env = wrappers.Monitor(env, 'output/polynomial-sgd-discrete-dqn', force=True)
         dr = DataRecorder(env)
         dqn.load_weights(args.dest)
-        dqn.test(dr, nb_episodes=5, visualize=True)
-        names = ["epoch", "iteration"] + env.observation_names() + ["reward", "done"]
+        dqn.test(dr, nb_episodes=5, visualize=visualize)
+        names = ["epoch", "iteration"] + env.env.observation_names() + ["reward", "done"]
         df = pd.DataFrame(dr.data_frame(names, lambda x: [x[0], x[1]] + list(x[2]) + [x[3], x[4]]))
-        df.to_csv("polynomial-sgd-discrete-dqn.csv")
+        df.to_csv("{}-test.csv".format(args.dest))
 
 
 if __name__ == '__main__':
