@@ -1,11 +1,20 @@
+import matplotlib as mpl
+
+# This line allows mpl to run with no DISPLAY defined
+mpl.use('Agg')
 import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import argparse
 
 def main(argv):
     fn = 'output/polynomial-sgd-discrete/dqn.h5-test.csv'
+    parser = argparse.ArgumentParser(description='Graph learning rates over time.')
+    parser.add_argument('--file', action="store", help='filename (default: {})'.format(fn))
+    args = parser.parse_args(argv)
+    fn = args.file
+
     df = pd.read_csv(fn)
     epoch = df["epoch"].as_matrix()
     iteration = df["iteration"].as_matrix()
