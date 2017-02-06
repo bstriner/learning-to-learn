@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def main(argv):
-    fn = 'output/polynomial_sgd_discrete/dqn-test.csv'
+    fn = 'output/polynomial-sgd-discrete/dqn.h5-test.csv'
     df = pd.read_csv(fn)
     epoch = df["epoch"].as_matrix()
     iteration = df["iteration"].as_matrix()
@@ -29,7 +29,7 @@ def main(argv):
     plt.xlabel("Epoch")
     plt.ylabel("Learning Rate")
     plt.xlim(0, iters)
-    fig.savefig("output/polynomial_sgd_discrete/learning_rate.png")
+    fig.savefig("output/polynomial-sgd-discrete/learning_rate.png")
     plt.close(fig)
 
     # Plot average
@@ -38,7 +38,7 @@ def main(argv):
     plt.xlabel("Epoch")
     plt.ylabel("Average Learning Rate")
     plt.xlim(0, iters)
-    fig.savefig("output/polynomial_sgd_discrete/learning_rate_avg.png")
+    fig.savefig("output/polynomial-sgd-discrete/learning_rate_avg.png")
     plt.close(fig)
 
 
