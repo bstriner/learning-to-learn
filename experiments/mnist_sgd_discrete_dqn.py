@@ -1,21 +1,8 @@
-import argparse
-import numpy as np
-import gym
-from gym import wrappers
-import pandas as pd
+
 import sys
-import gym_learning_to_learn
-import pandas as pd
-from gym_learning_to_learn.wrappers import DataRecorder
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Dropout, LeakyReLU
 from keras.regularizers import l1l2
-from keras.optimizers import Adam
-
-from rl.agents.dqn import DQNAgent
-from rl.policy import BoltzmannQPolicy
-from rl.memory import SequentialMemory
-import os
 from learning_to_learn import train
 
 ENV_NAME = 'SGD-MNIST-Discrete-v0'
