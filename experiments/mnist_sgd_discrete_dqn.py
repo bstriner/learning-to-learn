@@ -16,7 +16,7 @@ from rl.agents.dqn import DQNAgent
 from rl.policy import BoltzmannQPolicy
 from rl.memory import SequentialMemory
 import os
-from learning_to_learn import dqn
+from learning_to_learn import train
 
 ENV_NAME = 'SGD-MNIST-Discrete-v0'
 
@@ -41,10 +41,10 @@ def create_model(window_length, env):
 
 
 def main(argv):
-    dqn.main(argv,
+    train.main(argv,
              "output/mnist-sgd-discrete/dqn.h5",
-             ENV_NAME,
-             create_model)
+               ENV_NAME,
+               create_model)
 
 
 if __name__ == '__main__':
