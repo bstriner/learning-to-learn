@@ -9,13 +9,14 @@ from rl.memory import SequentialMemory
 
 def create_V(env, args):
     V_model = Sequential()
+    nch=256
     V_model.add(Flatten(input_shape=(args.window,) + env.observation_space.shape))
-    V_model.add(Dense(16))
-    V_model.add(Activation('relu'))
-    V_model.add(Dense(16))
-    V_model.add(Activation('relu'))
-    V_model.add(Dense(16))
-    V_model.add(Activation('relu'))
+    V_model.add(Dense(nch))
+    V_model.add(LeakyReLU(0.2))
+    V_model.add(Dense(nch/2))
+    V_model.add(LeakyReLU(0.2))
+    V_model.add(Dense(nch/4))
+    V_model.add(LeakyReLU(0.2))
     V_model.add(Dense(1))
     V_model.add(Activation('linear'))
     return V_model
@@ -23,13 +24,14 @@ def create_V(env, args):
 
 def create_mu(env, args):
     mu_model = Sequential()
+    nch=256
     mu_model.add(Flatten(input_shape=(args.window,) + env.observation_space.shape))
-    mu_model.add(Dense(16))
-    mu_model.add(Activation('relu'))
-    mu_model.add(Dense(16))
-    mu_model.add(Activation('relu'))
-    mu_model.add(Dense(16))
-    mu_model.add(Activation('relu'))
+    mu_model.add(Dense(nch))
+    mu_model.add(LeakyReLU(0.2))
+    mu_model.add(Dense(nch/2))
+    mu_model.add(LeakyReLU(0.2))
+    mu_model.add(Dense(nch/4))
+    mu_model.add(LeakyReLU(0.2))
     mu_model.add(Dense(env.action_space.shape[0]))
     mu_model.add(Activation('linear'))
     return mu_model
@@ -39,13 +41,14 @@ def create_L(env, args):
     nb_actions = env.action_space.shape[0]
     action_input = Input(shape=(nb_actions,), name='action_input')
     observation_input = Input(shape=(args.window,) + env.observation_space.shape, name='observation_input')
+    nch=256
     x = merge([action_input, Flatten()(observation_input)], mode='concat')
-    x = Dense(32)(x)
-    x = Activation('relu')(x)
-    x = Dense(32)(x)
-    x = Activation('relu')(x)
-    x = Dense(32)(x)
-    x = Activation('relu')(x)
+    x = Dense(nch)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(nch/2)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(nch/4)(x)
+    x = LeakyReLU(0.2)(x)
     x = Dense(((nb_actions * nb_actions + nb_actions) / 2))(x)
     x = Activation('linear')(x)
     L_model = Model(input=[action_input, observation_input], output=x)
@@ -67,5 +70,5 @@ def create_agent_cdqn(env, args):
                               gamma=.99, target_model_update=1e-3)
 
     # , processor=processor)
-    cdqn.compile(Adam(lr=.001, clipnorm=1.), metrics=['mae'])
+    cdqn.compile(Adam(lr=1e-3, clipnorm=1.), metrics=['mae'])
     return cdqn
