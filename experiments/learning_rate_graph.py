@@ -29,7 +29,7 @@ def main(argv):
     nl_lr = df["nl_lr"].as_matrix()
     lr = np.exp(-nl_lr)
     loss = df["reward"].as_matrix()
-    #loss = np.exp(-loss)
+    # loss = np.exp(-loss)
     min_epoch = np.min(epoch, axis=None)
     max_epoch = np.max(epoch, axis=None)
     iters = np.max(iteration, axis=None)
@@ -63,7 +63,7 @@ def main(argv):
 
     # Plot each trial
     fig = plt.figure()
-    plt.plot(idx, data[:, :, 1])
+    plt.plot(idx, np.exp(-data[:, :, 1]))
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.xlim(0, iters)
@@ -72,7 +72,7 @@ def main(argv):
 
     # Plot average
     fig = plt.figure()
-    plt.plot(idx, avg[:, 1])
+    plt.plot(idx, np.exp(-avg[:, 1]))
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.xlim(0, iters)
