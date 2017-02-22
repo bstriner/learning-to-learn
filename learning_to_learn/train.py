@@ -25,11 +25,12 @@ class CheckpointCallback(rl.callbacks.Callback):
         self.frequency = frequency
 
     def on_episode_end(self, episode, logs={}):
-        path = self.path.format(episode)
-        dirname = os.path.dirname(path)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-        self.model.save_weights(path, overwrite=True)
+        if episode % self.frequency == 0:
+            path = self.path.format(episode)
+            dirname = os.path.dirname(path)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            self.model.save_weights(path, overwrite=True)
 
 
 def main(argv, default_path, env_name, create_agent):
@@ -80,7 +81,7 @@ def main(argv, default_path, env_name, create_agent):
         dqn.load_weights(args.src)
 
     if args.train:
-        cp = CheckpointCallback(500, h5path+"-cp{:08d}.h5")
+        cp = CheckpointCallback(500, h5path+"-cp/epoch-{:08d}.h5")
         history = dqn.fit(env, nb_steps=args.steps, visualize=visualize, verbose=2, callbacks=[cp])
         pd.DataFrame(history.history).to_csv(csvpath)
         dqn.save_weights(h5path, overwrite=True)
