@@ -4,9 +4,12 @@ import learning_rate_graph
 
 def main():
     t1 = "output/polynomial-sgd-cdqn/test.csv"
-    polynomial_sgd_cdqn.main(["--create", "--train", "--test", "--steps", "5000000", "--memory", "5000", "--test-dst", t1])
+    #polynomial_sgd_cdqn.main(["--create", "--train", "--test", "--steps", "5000000", "--memory", "5000", "--test-dst", t1])
+    #learning_rate_graph.main(["--input", t1])
+    cp = "output/polynomial-sgd-cdqn/cdqn.h5-cp/epoch-00009000.h5"
+    polynomial_sgd_cdqn.main(
+        ["--load", "--test", "--src", cp, "--test-dst", t1])
     learning_rate_graph.main(["--input", t1])
-
     #t2 = "output/polynomial-sgd-cdqn/test-no-regenerate.csv"
     #polynomial_sgd_cdqn.main(["--create", "--test", "--test-dst", t1])
     #polynomial_sgd_cdqn.main(["--load", "--test", "--test-dst", t2, "--no-regenerate"])
