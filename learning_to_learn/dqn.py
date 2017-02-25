@@ -27,6 +27,7 @@ import os
 from .normalization import LayerNormalization
 
 def create_model(env, args):
+
     nb_actions = env.action_space.n
     reg = lambda: l1l2(1e-7, 1e-7)
     dropout = 0.5

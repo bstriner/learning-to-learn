@@ -1,6 +1,7 @@
 from keras.engine import Layer, InputSpec
 from keras import initializations, regularizers
 from keras import backend as K
+from keras.utils.generic_utils import custom_object_scope
 
 class LayerNormalization(Layer):
     """Layer normalization layer
@@ -26,3 +27,6 @@ class LayerNormalization(Layer):
 #        config = {}
 #        base_config = super(LayerNormalization, self).get_config()
 #        return dict(list(base_config.items()) + list(config.items()))
+
+def scope():
+    return custom_object_scope({"LayerNormalization":LayerNormalization})
