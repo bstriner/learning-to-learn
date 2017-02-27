@@ -1,11 +1,15 @@
-import numpy as np
+import matplotlib as mpl
+
+mpl.use('Agg')
 import os
+
+import numpy as np
 import matplotlib.pyplot as plt
 from gym_learning_to_learn.datasets import polynomial
 from gym_learning_to_learn.utils.np_utils import generate_or_load_dataset
 from keras.layers import Dense, LeakyReLU, Input, Dropout
 from keras.models import Model
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 from learning_to_learn.normalization import LayerNormalization
 import pandas as pd
 
@@ -41,7 +45,7 @@ def trials(path, create_opt, nch, dropout, layernorm):
     if os.path.exists(path):
         return
     nb_epoch = 1000
-    nb_trial = 10
+    nb_trial = 5
     test_set = "output/polynomial/test-set.npz"
     (x_train, y_train), (x_val, y_val), (x_test, y_test) = generate_or_load_dataset(test_set, polynomial.load_data)
     results = {}
@@ -83,11 +87,11 @@ def baseline(path, create_opt, nch, dropout, layernorm):
     graph(path)
 
 
-def main():
-    basepath = "output/polynomial"
+def sgd_baseline():
+    basepath = "output/polynomial/sgd"
     models = []
     for name, opt in [("sgd-1e1", lambda:SGD(1e-1)),("sgd-1e2", lambda:SGD(1e-2)),("sgd-1e3", lambda:SGD(1e-3)),("sgd-1e4", lambda:SGD(1e-4)),("sgd-1e5", lambda:SGD(1e-5))]:
-        for nch in [64, 128, 256, 512, 1024]:
+        for nch in [64, 256, 1024]:
             for dropout in [0,0.5]:
                 for layernorm in [False, True]:
                     path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))
@@ -98,6 +102,23 @@ def main():
                     path += ".csv"
                     baseline(path, opt, nch=nch, dropout=dropout, layernorm=layernorm)
                     models.append(path)
+
+def adam_baseline():
+    basepath = "output/polynomial/adam"
+    models = []
+    for name, opt in [("adam-1e1", lambda:Adam(1e-1)),("adam-1e2", lambda:Adam(1e-2)),("adam-1e3", lambda:Adam(1e-3)),("adam-1e4", lambda:Adam(1e-4)),("adam-1e5", lambda:Adam(1e-5))]:
+        for nch in [64, 256, 1024]:
+            for dropout in [0,0.5]:
+                for layernorm in [False, True]:
+                    path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))
+                    if dropout > 0:
+                        path += "-dropout"
+                    if layernorm:
+                        path += "-layernorm"
+                    path += ".csv"
+                    baseline(path, opt, nch=nch, dropout=dropout, layernorm=layernorm)
+                    models.append(path)
+
     #baseline("output/polynomial/baseline-sgd-1e1.csv", lambda: SGD(1e-1))
     #baseline("output/polynomial/baseline-sgd-1e2.csv", lambda: SGD(1e-2))
     #baseline("output/polynomial/baseline-sgd-1e3.csv", lambda: SGD(1e-3))
@@ -105,6 +126,9 @@ def main():
     # baseline("output/polynomial/baseline-sgd-1e2-decay-1e3.csv", lambda: SGD(1e-2, decay=1e-3))
     # baseline("output/polynomial/baseline-sgd-1e2-decay-1e1.csv", lambda: SGD(1e-2, decay=1e-1))
 
+def main():
+    sgd_baseline()
+    adam_baseline()
 
 if __name__ == "__main__":
     main()
