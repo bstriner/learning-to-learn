@@ -64,7 +64,7 @@ def trials(path, create_opt, nch, dropout, layernorm):
 
 def graph(path):
     assert os.path.exists(path)
-    imgpath = os.path.join(os.path.dirname(path), os.path.basename(path) + ".png")
+    imgpath = os.path.join(os.path.dirname(path), os.path.splitext(os.path.basename(path))[0] + ".png")
     #if os.path.exists(imgpath):
     #    return
     if not os.path.exists(os.path.dirname(imgpath)):
