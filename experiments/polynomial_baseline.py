@@ -90,7 +90,7 @@ def baseline(path, create_opt, nch, dropout, layernorm):
 def sgd_baseline():
     basepath = "output/polynomial/sgd"
     models = []
-    for name, opt in [("sgd-1e1", lambda:SGD(1e-1)),("sgd-1e2", lambda:SGD(1e-2)),("sgd-1e3", lambda:SGD(1e-3)),("sgd-1e4", lambda:SGD(1e-4)),("sgd-1e5", lambda:SGD(1e-5))]:
+    for name, opt in [("sgd-1e2", lambda:SGD(1e-2)),("sgd-1e3", lambda:SGD(1e-3)),("sgd-1e4", lambda:SGD(1e-4)),("sgd-1e5", lambda:SGD(1e-5))]:
         for nch in [64, 256, 1024]:
             for dropout in [0,0.5]:
                 for layernorm in [False, True]:
@@ -106,7 +106,7 @@ def sgd_baseline():
 def adam_baseline():
     basepath = "output/polynomial/adam"
     models = []
-    for name, opt in [("adam-1e1", lambda:Adam(1e-1)),("adam-1e2", lambda:Adam(1e-2)),("adam-1e3", lambda:Adam(1e-3)),("adam-1e4", lambda:Adam(1e-4)),("adam-1e5", lambda:Adam(1e-5))]:
+    for name, opt in [("adam-1e2", lambda:Adam(1e-2)),("adam-1e3", lambda:Adam(1e-3)),("adam-1e4", lambda:Adam(1e-4)),("adam-1e5", lambda:Adam(1e-5))]:
         for nch in [64, 256, 1024]:
             for dropout in [0,0.5]:
                 for layernorm in [False, True]:
