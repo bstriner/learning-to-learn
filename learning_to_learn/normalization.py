@@ -19,7 +19,7 @@ class LayerNormalization(Layer):
     def call(self, x, mask=None):
         # sample-wise normalization
         m = K.mean(x, axis=-1, keepdims=True)
-        std = K.sqrt(K.var(x, axis=-1, keepdims=True))
+        std = K.sqrt(K.var(x, axis=-1, keepdims=True)+self.epsilon)
         x_normed = (x - m) / (std + self.epsilon)
         return x_normed
 

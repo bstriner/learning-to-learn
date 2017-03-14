@@ -3,7 +3,7 @@ from rl.agents import ContinuousDQNAgent
 from rl.random import OrnsteinUhlenbeckProcess
 from keras.layers import Dense, Flatten, Dropout, LeakyReLU, merge, Input
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, RMSprop
 from rl.memory import SequentialMemory
 from keras.regularizers import l1l2
 
@@ -74,5 +74,5 @@ def create_agent_cdqn(env, args):
                               gamma=.99, target_model_update=1e-3)
 
     # , processor=processor)
-    cdqn.compile(Adam(lr=1e-4, clipnorm=1.), metrics=['mae'])
+    cdqn.compile(RMSprop(lr=1e-4, clipnorm=1.), metrics=['mae'])
     return cdqn

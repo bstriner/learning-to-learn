@@ -74,8 +74,8 @@ def main(argv, default_path, env_name, create_agent):
 
     visualize = False
 
-    if args.create:
-        dqn.save_weights(h5path, overwrite=True)
+    #if args.create:
+    #    dqn.save_weights(h5path, overwrite=True)
 
     if args.load:
         dqn.load_weights(args.src)
@@ -84,7 +84,8 @@ def main(argv, default_path, env_name, create_agent):
         cp = CheckpointCallback(500, h5path+"-cp/epoch-{:08d}.h5")
         history = dqn.fit(env, nb_steps=args.steps, visualize=visualize, verbose=2, callbacks=[cp])
         pd.DataFrame(history.history).to_csv(csvpath)
-        dqn.save_weights(h5path, overwrite=True)
+
+    dqn.save_weights(h5path, overwrite=True)
 
     if args.test:
         # env = wrappers.Monitor(env, 'output/polynomial-sgd-discrete-dqn', force=True)

@@ -45,7 +45,7 @@ def trials(path, create_opt, nch, dropout, layernorm):
     if os.path.exists(path):
         return
     nb_epoch = 1000
-    nb_trial = 5
+    nb_trial = 1
     test_set = "output/polynomial/test-set.npz"
     (x_train, y_train), (x_val, y_val), (x_test, y_test) = generate_or_load_dataset(test_set, polynomial.load_data)
     results = {}
@@ -90,10 +90,14 @@ def baseline(path, create_opt, nch, dropout, layernorm):
 def sgd_baseline():
     basepath = "output/polynomial/sgd"
     models = []
-    for name, opt in [("sgd-1e2", lambda:SGD(1e-2)),("sgd-1e3", lambda:SGD(1e-3)),("sgd-1e4", lambda:SGD(1e-4)),("sgd-1e5", lambda:SGD(1e-5))]:
-        for nch in [64, 256, 1024]:
-            for dropout in [0,0.5]:
-                for layernorm in [False, True]:
+    for name, opt in [
+        ("sgd-1e2", lambda:SGD(1e-2)),
+        ("sgd-1e3", lambda:SGD(1e-3)),
+        ("sgd-1e4", lambda:SGD(1e-4)),
+        ("sgd-1e5", lambda:SGD(1e-5))]:
+        for nch in [256]: #[64, 256, 1024]:
+            for dropout in [0]:
+                for layernorm in [False]:
                     path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))
                     if dropout > 0:
                         path += "-dropout"
@@ -106,10 +110,14 @@ def sgd_baseline():
 def adam_baseline():
     basepath = "output/polynomial/adam"
     models = []
-    for name, opt in [("adam-1e2", lambda:Adam(1e-2)),("adam-1e3", lambda:Adam(1e-3)),("adam-1e4", lambda:Adam(1e-4)),("adam-1e5", lambda:Adam(1e-5))]:
-        for nch in [64, 256, 1024]:
-            for dropout in [0,0.5]:
-                for layernorm in [False, True]:
+    for name, opt in [
+        ("adam-1e2", lambda:Adam(1e-2)),
+        ("adam-1e3", lambda:Adam(1e-3)),
+        ("adam-1e4", lambda:Adam(1e-4)),
+        ("adam-1e5", lambda:Adam(1e-5))]:
+        for nch in [256]: #[64, 256, 1024]:
+            for dropout in [0]:
+                for layernorm in [False]:
                     path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))
                     if dropout > 0:
                         path += "-dropout"
