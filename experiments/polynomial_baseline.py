@@ -92,10 +92,8 @@ def sgd_baseline():
     models = []
     for name, opt in [
         ("sgd-1e2", lambda:SGD(1e-2)),
-        ("sgd-1e3", lambda:SGD(1e-3)),
-        ("sgd-1e4", lambda:SGD(1e-4)),
-        ("sgd-1e5", lambda:SGD(1e-5))]:
-        for nch in [128]: #[64, 256, 1024]:
+        ("sgd-1e3", lambda:SGD(1e-3))]:
+        for nch in [64, 256]: #[64, 256, 1024]:
             for dropout in [0]:
                 for layernorm in [False]:
                     path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))
@@ -112,10 +110,8 @@ def adam_baseline():
     models = []
     for name, opt in [
         ("adam-1e2", lambda:Adam(1e-2)),
-        ("adam-1e3", lambda:Adam(1e-3)),
-        ("adam-1e4", lambda:Adam(1e-4)),
-        ("adam-1e5", lambda:Adam(1e-5))]:
-        for nch in [256]: #[64, 256, 1024]:
+        ("adam-1e3", lambda:Adam(1e-3))]:
+        for nch in [64, 256]: #[64, 256, 1024]:
             for dropout in [0]:
                 for layernorm in [False]:
                     path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))
