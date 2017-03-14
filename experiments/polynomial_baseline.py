@@ -95,7 +95,7 @@ def sgd_baseline():
         ("sgd-1e3", lambda:SGD(1e-3)),
         ("sgd-1e4", lambda:SGD(1e-4)),
         ("sgd-1e5", lambda:SGD(1e-5))]:
-        for nch in [256]: #[64, 256, 1024]:
+        for nch in [128]: #[64, 256, 1024]:
             for dropout in [0]:
                 for layernorm in [False]:
                     path = os.path.join(basepath, "polynomial-{}-{}".format(nch, name))

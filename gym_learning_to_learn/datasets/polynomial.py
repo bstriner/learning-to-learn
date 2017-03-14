@@ -9,12 +9,12 @@ def normalize(x):
 
 
 
-def load_data(n_train=32 * 100, n_val=32*20, n_test=32*20):
+def load_data(n_train=32 * 20, n_val=32*5, n_test=32*5):
     # input_dim = np.random.randint(5, 10)
-    input_dim = 10
+    input_dim = 5
     max_power = 3
     # dropout = 0.5
-    noise_sigma = 1e-2
+    noise_sigma = 1e-1
 
     total_n = n_train + n_val + n_test
     x = np.random.uniform(-1, 1, (total_n, input_dim))

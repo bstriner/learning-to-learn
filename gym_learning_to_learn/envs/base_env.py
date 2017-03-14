@@ -67,7 +67,7 @@ class BaseEnv(Env):
         assert np.all(np.isfinite(reward))
         if loss_after < self.best:
             self.best = loss_after
-        done = self.current_step > self.max_steps
+        done = self.current_step >= self.max_steps
         # print("Step: {}".format(observation))
         info = {}
         if self.evaluate_test:
