@@ -5,13 +5,13 @@ from keras.layers import Dense, Flatten, Dropout, LeakyReLU, merge, Input
 from keras.models import Sequential, Model
 from keras.optimizers import Adam, RMSprop
 from rl.memory import SequentialMemory
-from keras.regularizers import l1l2
+from keras.regularizers import L1L2
 
 
 def create_V(env, args):
     V_model = Sequential()
     nch = 256
-    reg = lambda: l1l2(1e-7, 1e-7)
+    reg = lambda: L1L2(1e-7, 1e-7)
     V_model.add(Flatten(input_shape=(args.window,) + env.observation_space.shape))
     V_model.add(Dense(nch, W_regularizer=reg()))
     V_model.add(LeakyReLU(0.2))
@@ -27,7 +27,7 @@ def create_V(env, args):
 def create_mu(env, args):
     mu_model = Sequential()
     nch = 256
-    reg = lambda: l1l2(1e-7, 1e-7)
+    reg = lambda: L1L2(1e-7, 1e-7)
     mu_model.add(Flatten(input_shape=(args.window,) + env.observation_space.shape))
     mu_model.add(Dense(nch, W_regularizer=reg()))
     mu_model.add(LeakyReLU(0.2))
@@ -45,7 +45,7 @@ def create_L(env, args):
     action_input = Input(shape=(nb_actions,), name='action_input')
     observation_input = Input(shape=(args.window,) + env.observation_space.shape, name='observation_input')
     nch = 256
-    reg = lambda: l1l2(1e-7, 1e-7)
+    reg = lambda: L1L2(1e-7, 1e-7)
     x = merge([action_input, Flatten()(observation_input)], mode='concat')
     x = Dense(nch, W_regularizer=reg())(x)
     x = LeakyReLU(0.2)(x)

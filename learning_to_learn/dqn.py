@@ -1,30 +1,11 @@
-import argparse
-import numpy as np
-import gym
-from gym import wrappers
-import pandas as pd
-import sys
-import gym_learning_to_learn
-import pandas as pd
-from gym_learning_to_learn.wrappers import DataRecorder
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout
-from keras.regularizers import l1l2
 from keras.optimizers import Adam, RMSprop
 
 from keras.layers import Dense, Flatten, Dropout, LeakyReLU
 from keras.models import Sequential
-from keras.regularizers import l1l2
-from learning_to_learn import train
-from rl.policy import BoltzmannQPolicy
-from rl.memory import SequentialMemory
-from rl.agents.dqn import DQNAgent
-from keras.optimizers import Adam
+from keras.regularizers import L1L2
 from rl.agents.dqn import DQNAgent
 from rl.policy import BoltzmannQPolicy
 from rl.memory import SequentialMemory
-import os
-from .normalization import LayerNormalization
 
 def create_model(env, args):
 
