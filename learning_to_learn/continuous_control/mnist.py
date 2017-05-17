@@ -21,6 +21,10 @@ def mnist_generator(batch_size):
         train_batch = [train[0][idx_train, :], train[1][idx_train]]
         test_batch = [test[0][idx_test, :], test[1][idx_test]]
         yield train_batch + test_batch
+        del idx_train
+        del idx_test
+        del train_batch
+        del test_batch
 
 
 if __name__ == "__main__":
