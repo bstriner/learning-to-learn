@@ -18,7 +18,7 @@ def main():
     inner_units = 256
     batches = 512
     frequency = 50
-    depth = 20
+    depth = 50
     decay = 1.1
     schedule = np.power(decay, np.arange(depth))
     gen = mnist_batch_generator(batch_size=batch_size, depth=depth)

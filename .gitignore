@@ -89,3 +89,4 @@ ENV/
 .ropeproject
 /experiments/output
 /.idea
+/experiments/continuous_control/output
