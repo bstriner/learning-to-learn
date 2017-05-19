@@ -17,7 +17,7 @@ def create_model(input_dim, output_dim, units, internal_activation):
 
 
 def main():
-    batch_size = 32
+    batch_size = 64
     lr_opt = Adam(1e-5)
     epochs = 10000
     batches = 100
@@ -25,7 +25,7 @@ def main():
     lr_units = 256
     inner_units = 256
     frequency = 200
-    depth = 5
+    depth = 10
     decay = 0.98
     schedule = np.power(decay, np.arange(depth))
     gen = mnist_generator(batch_size)

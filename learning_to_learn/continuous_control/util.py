@@ -1,9 +1,5 @@
-from keras.datasets import mnist
+import warnings
 import theano.tensor as T
-import theano
-from learning_to_learn.continuous_control.dense_layer import DenseLayer
-import itertools
-from theano.tensor.shared_randomstreams import RandomStreams
 import numpy as np
 
 
@@ -20,6 +16,12 @@ def logit(x):
     return T.log(x / (1 - x))
 
 
+def random_uniform_init_T(w, srng):
+    scale = 0.05
+    print "Init w: {}, {}, {}".format(w, w.dtype, w.ndim)
+    return srng.uniform(low=-scale, high=scale, size=w.shape, dtype=w.dtype)
+
+
 def nll_loss(ytrue, ypred):
     assert ytrue.ndim == 1
     assert ypred.ndim == 2
@@ -31,3 +33,18 @@ def accuracy(ytrue, ypred):
     assert ytrue.ndim == 1
     assert ypred.ndim == 2
     return T.mean(T.eq(ytrue, T.argmax(ypred, axis=1)), axis=None)
+
+
+def cast_updates_gen(updates):
+    for k, v in updates:
+        if k.ndim != v.ndim:
+            raise ValueError("Incorrect ndim {}. {} -> {}".format(k, k.ndim, v.ndim))
+        if k.dtype != v.dtype:
+            warnings.warn("Warning: Casting {} update from {} to {}".format(k, v.dtype, k.dtype))
+            yield k, T.cast(v, k.dtype)
+        else:
+            yield k, v
+
+
+def cast_updates(updates):
+    return list(cast_updates_gen(updates))

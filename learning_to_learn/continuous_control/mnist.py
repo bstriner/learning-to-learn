@@ -27,9 +27,26 @@ def mnist_generator(batch_size):
         del test_batch
 
 
+def batch_reshape(x, depth):
+    if x.shape[0] % depth != 0:
+        raise ValueError("Invalid shape. Depth: {}, shape[0]: {}".format(depth, x.shape[0]))
+    xr = x.reshape((depth, x.shape[0] / depth) + x.shape[1:])
+    return xr
+
+
+def mnist_batch_generator(batch_size, depth):
+    gen = mnist_generator(batch_size * depth)
+    for c in gen:
+        yield [batch_reshape(a, depth) for a in c]
+
+
 if __name__ == "__main__":
     data = mnist_data()
     for d in data:
         x, y = d
         print "X: {}, {}".format(x.shape, x.dtype)
         print "Y: {}, {}".format(y.shape, y.dtype)
+
+    for c in mnist_batch_generator(32, 10):
+        print [a.shape for a in c]
+        break

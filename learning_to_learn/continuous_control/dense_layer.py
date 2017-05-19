@@ -1,12 +1,7 @@
 import theano.tensor as T
 import theano
 import numpy as np
-
-
-def random_uniform_init_T(w, srng):
-    scale = 0.05
-    print "Init w: {}, {}, {}".format(w, w.dtype, w.ndim)
-    return srng.uniform(low=-scale, high=scale, size=w.shape, dtype=w.dtype)
+from .util import random_uniform_init_T
 
 
 class DenseLayer(object):
@@ -34,5 +29,5 @@ class DenseLayer(object):
         return y
 
     def reset_updates(self, srng):
-        updates = [(w, random_uniform_init_T(w, srng)) for w in self.weights]
+        updates = [(w, self.init(w, srng)) for w in self.weights]
         return updates

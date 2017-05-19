@@ -5,7 +5,7 @@ import theano.tensor as T
 import theano
 import numpy as np
 from .dense_layer import DenseLayer
-from .util import leaky_relu, accuracy, logit, logit_np
+from .util import leaky_relu, accuracy, logit, logit_np, cast_updates
 from .mlp import MLP
 from theano.tensor.shared_randomstreams import RandomStreams
 from keras.optimizers import Adam
@@ -92,19 +92,19 @@ class GreedyModel(object):
         outputs = [loss, acc, loss_val, acc_val, loss_next, loss_next_val, lr_next]
         self.train_function = theano.function(inputs,
                                               outputs,
-                                              updates=updates)
+                                              updates=cast_updates(updates))
         srng = RandomStreams(123)
-        self.reset_function = theano.function([], [], updates=reset_vars + inner_model.reset_updates(srng))
+        self.reset_function = theano.function([], [], updates=cast_updates(reset_vars + inner_model.reset_updates(srng)))
 
         # initialize the models before training
         print "Initializing model"
-        reset_lr_function = theano.function([], [], updates=lr_model.reset_updates(srng))
+        reset_lr_function = theano.function([], [], updates=cast_updates(lr_model.reset_updates(srng)))
         reset_lr_function()
         self.reset_function()
 
         self.validation_function = theano.function(inputs,
                                                    [loss, acc, loss_val, acc_val, lr_next],
-                                                   updates=inner_updates + other_updates)
+                                                   updates=cast_updates(inner_updates + other_updates))
 
         lr_p = theano.shared(np.float32(0), name="initial_lr_p")
         lr_initial = T.nnet.sigmoid(lr_p)
@@ -124,7 +124,7 @@ class GreedyModel(object):
                                             [initial_loss, initial_loss_val,
                                              initial_loss_next, initial_loss_val_next,
                                              lr_initial],
-                                            updates=initial_updates)
+                                            updates=cast_updates(initial_updates))
 
     def train_initial_lr(self, gen, epochs, output_path, verbose=True):
         if not os.path.exists(os.path.dirname(output_path)):

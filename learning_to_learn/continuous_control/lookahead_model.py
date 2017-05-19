@@ -7,10 +7,19 @@ import theano.tensor as T
 import theano
 import numpy as np
 from .dense_layer import DenseLayer
-from .util import leaky_relu, accuracy, logit, logit_np
+from .util import leaky_relu, accuracy, logit, logit_np, cast_updates
 from .mlp import MLP
 from theano.tensor.shared_randomstreams import RandomStreams
 from keras.optimizers import Adam
+
+"""
+def downcast(updates):
+    for a, b in updates:
+        if a.dtype == 'float32' and not b.dtype == 'float32':
+            yield a, T.cast(b, 'float32')
+        else:
+            yield a, b
+"""
 
 
 class LookaheadModel(object):
@@ -43,9 +52,14 @@ class LookaheadModel(object):
                         DenseLayer(units, 1, activation=T.nnet.sigmoid, name="outer_4")])
 
         offsets = T.arange(depth)
-        batch_idxs = offsets + batch
+        batch_idxs = offsets + (batch.dimshuffle(('x',)))
         lr_input = T.reshape(T.log(batch_idxs), (-1, 1))
         lr_output = lr_model.call(lr_input)[:, 0]  # (depth,)
+
+        testf = theano.function([],[lr_input, lr_output])
+        t=testf()
+        print "Test output"
+        print t
 
         inputs = []
         losses = []
@@ -82,15 +96,20 @@ class LookaheadModel(object):
 
         # train LR model to minimize validation loss
         lr_updates = lr_opt.get_updates(lr_model.weights, {}, weighted_loss)
+        lr_updates = cast_updates(lr_updates)
+        # lr_updates = list(downcast(lr_updates))
 
-        inner_updates = [(w, T.cast(nw, 'float32')) for w, nw in zip(inner_model.weights, weights_next)]
+        inner_updates = [(w, nw) for w, nw in zip(inner_model.weights, weights_next)]
+        inner_updates = cast_updates(inner_updates)
         other_updates = [
             (batch, batch + 1)
         ]
+        other_updates = cast_updates(other_updates)
         updates = inner_updates + lr_updates + other_updates
-        # for u in updates:
-        #    print "Update {}: {}/{} -> {}/{}".format(u[0].name, u[0].ndim, u[0].dtype,
-        #                                             u[1].ndim, u[1].dtype)
+        for u in updates:
+            if u[0].ndim != u[1].ndim or u[0].dtype != u[1].dtype:
+                print "Update {}: {}/{} -> {}/{}".format(u[0].name, u[0].ndim, u[0].dtype,
+                                                         u[1].ndim, u[1].dtype)
         self.train_function = theano.function(inputs,
                                               outputs,
                                               updates=updates)
@@ -197,7 +216,7 @@ class LookaheadModel(object):
                     inputs = list(itertools.chain.from_iterable(next(gen) for _ in range(self.depth)))
                     losses = self.train_function(*inputs)
                     del inputs
-                    #gc.collect()
+                    # gc.collect()
                 w.writerow([epoch] + losses)
 
                 if (epoch + 1) % frequency == 0:

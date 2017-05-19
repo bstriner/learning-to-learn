@@ -1,3 +1,4 @@
+import itertools
 from tqdm import tqdm
 import csv
 import os
@@ -12,6 +13,7 @@ from theano.tensor.shared_randomstreams import RandomStreams
 """
 Baseline model with constant LR
 """
+
 
 class BaselineModel(object):
     def __init__(self,
@@ -50,7 +52,6 @@ class BaselineModel(object):
         print "Initializing model"
         self.reset_function()
 
-
     def train(self, gen, batches, output_path):
         if not os.path.exists(os.path.dirname(output_path)):
             os.makedirs(os.path.dirname(output_path))
@@ -61,14 +62,44 @@ class BaselineModel(object):
                         "Train Acc",
                         "Validation Loss",
                         "Validation Acc"])
-            for epoch in tqdm(range(batches), desc="Training"):
+            for batch in tqdm(range(batches), desc="Training"):
                 # Reset MLP weights
                 inputs = next(gen)
                 losses = self.train_function(*inputs)
-                w.writerow([epoch, losses[0], losses[1], losses[2], losses[3]])
-
+                w.writerow([batch, losses[0], losses[1], losses[2], losses[3]])
 
     def train_several(self, count, gen, batches, output_path):
-        for i in range(count):
+        if not os.path.exists(os.path.dirname(output_path)):
+            os.makedirs(os.path.dirname(output_path))
+
+        all_losses = []
+        for _ in tqdm(range(count), "Baseline training"):
             self.reset_function()
-            self.train(gen, batches, output_path="{}/test-{}.csv".format(output_path, i))
+            losses = []
+            for _ in tqdm(range(batches), desc="Training"):
+                inputs = next(gen)
+                loss = self.train_function(*inputs)
+                losses.append(loss)
+            all_losses.append(losses)
+        avgs = []
+        with open(output_path, 'wb') as f:
+            w = csv.writer(f)
+            w.writerow(["Batch"] +
+                       ["Avg Loss",
+                        "Avg Acc",
+                        "Avg Val Loss",
+                        "Avg Val Acc"] +
+                       ["Train Loss {}".format(i) for i in range(count)] +
+                       ["Train Acc {}".format(i) for i in range(count)] +
+                       ["Val Loss {}".format(i) for i in range(count)] +
+                       ["Val Acc {}".format(i) for i in range(count)])
+            for batch in range(batches):
+                avg = [np.mean([all_losses[k][batch][j]
+                                 for k in range(count)])
+                        for j in range(4)]
+                data = list(itertools.chain.from_iterable([
+                    [all_losses[k][batch][j] for k in range(count)]
+                    for j in range(4)]))
+                w.writerow([batch] + avg + data)
+                avgs.append(avg)
+        return avgs

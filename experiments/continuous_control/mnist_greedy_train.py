@@ -20,7 +20,7 @@ def main():
     lr_opt = Adam(1e-5)
     epochs = 10000
     batches = 500
-    validation_epochs = 20
+    validation_epochs = 10
     lr_units = 256
     inner_units = 256
     frequency = 200
