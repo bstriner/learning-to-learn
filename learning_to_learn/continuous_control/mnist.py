@@ -35,9 +35,23 @@ def batch_reshape(x, depth):
 
 
 def mnist_batch_generator(batch_size, depth):
-    gen = mnist_generator(batch_size * depth)
-    for c in gen:
-        yield [batch_reshape(a, depth) for a in c]
+    train, test = mnist_data()
+    while True:
+        idx_train = np.random.randint(0, train[0].shape[0], (depth, batch_size))
+        idx_test = np.random.randint(0, test[0].shape[0], (depth, batch_size,))
+        train_batch = [train[0][idx_train, :], train[1][idx_train]]
+        test_batch = [test[0][idx_test, :], test[1][idx_test]]
+        yield train_batch + test_batch
+
+
+def mnist_multiple_batch_generator(batch_size, depth, validation_batch_size):
+    train, test = mnist_data()
+    while True:
+        idx_train = np.random.randint(0, train[0].shape[0], (depth, batch_size))
+        idx_test = np.random.randint(0, test[0].shape[0], (validation_batch_size,))
+        train_batch = [train[0][idx_train, :], train[1][idx_train]]
+        test_batch = [test[0][idx_test, :], test[1][idx_test]]
+        yield train_batch + test_batch
 
 
 if __name__ == "__main__":

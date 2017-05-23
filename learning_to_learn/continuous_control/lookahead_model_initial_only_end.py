@@ -1,34 +1,33 @@
-import gc
-from tqdm import tqdm
 import csv
-import itertools
 import os
-import theano.tensor as T
-import theano
+
 import numpy as np
-from .dense_layer import DenseLayer
-from .util import leaky_relu, accuracy, logit, logit_np, cast_updates, random_uniform_init_T
-from .mlp import MLP
+import theano
+import theano.tensor as T
+from keras.optimizers import Optimizer
 from theano.tensor.shared_randomstreams import RandomStreams
-from keras.optimizers import Adam
+from tqdm import tqdm
+
+from .dense_layer import DenseLayer
+from .mlp import MLP
+from .util import leaky_relu, accuracy, cast_updates
+from ..continuous_control.optimizers.optimizer import VariableOptimizer
 
 
-class LookaheadModelInitial(object):
+class LookaheadModelInitialOnlyEnd(object):
     def __init__(self,
                  inner_model,
                  loss_function,
                  lr_opt,
-                 schedule,
-                 input_type=T.ftensor3,
-                 target_type=T.imatrix,
+                 inner_opt,
+                 depth,
                  units=256):
         self.inner_model = inner_model
         self.loss_function = loss_function
-        assert isinstance(inner_model, MLP)
-        assert schedule.ndim == 1
-        self.schedule = theano.shared(value=np.float32(schedule), name="schedule")
-        depth = schedule.shape[0]
         self.depth = depth
+        assert isinstance(lr_opt, Optimizer)
+        assert isinstance(inner_opt, VariableOptimizer)
+        assert isinstance(inner_model, MLP)
         srng = RandomStreams(123)
 
         initial_weights = [u[1] for u in inner_model.reset_updates(srng=srng)]
@@ -43,14 +42,18 @@ class LookaheadModelInitial(object):
         lr_p = theano.shared(lr_init.astype(np.float32), name="lr_schedule")
         lr = T.nnet.sigmoid(lr_p)
 
-        input_x_train = input_type(name="input_x_train")  # (depth, n, units)
-        target_y_train = target_type(name="target_y_train")  # (depth, n)
-        input_x_val = input_type(name="input_x_val")  # (depth, n, units)
-        target_y_val = target_type(name="target_y_val")  # (depth, n)
+        input_x_train = T.ftensor3(name="input_x_train")  # (depth, n, units)
+        target_y_train = T.imatrix(name="target_y_train")  # (depth, n)
+        input_x_val = T.fmatrix(name="input_x_val")  # (depth, n, units)
+        target_y_val = T.ivector(name="target_y_val")  # (depth, n)
 
         outputs_info = ([None] * 5) + initial_weights
-        sequences = [lr, input_x_train, target_y_train, input_x_val, target_y_val]
-        ret, _ = theano.scan(self.scan_fun, sequences=sequences, outputs_info=outputs_info)
+        sequences = [lr, input_x_train, target_y_train]
+        non_sequences = [input_x_val, target_y_val]
+        ret, _ = theano.scan(self.scan_fun,
+                             sequences=sequences,
+                             outputs_info=outputs_info,
+                             non_sequences=non_sequences)
         idx = 0
         loss = ret[idx]
         idx += 1
@@ -66,8 +69,9 @@ class LookaheadModelInitial(object):
         idx += len(self.inner_model.weights)
         assert len(ret) == idx
 
-        weighted_loss = T.sum(loss_next_val * self.schedule)
-        lr_updates = lr_opt.get_updates([lr_p], {}, weighted_loss)
+        final_loss = loss_next_val[-1]
+        # weighted_loss = T.sum(loss_next_val * self.schedule)
+        lr_updates = lr_opt.get_updates([lr_p], {}, final_loss)
         inputs = [input_x_train,
                   target_y_train,
                   input_x_val,
@@ -76,8 +80,7 @@ class LookaheadModelInitial(object):
         outputs = [loss, acc, loss_val, acc_val, lr]
 
         self.train_function = theano.function(inputs,
-                                              weighted_loss,
-                                              #outputs,
+                                              final_loss,
                                               updates=cast_updates(lr_updates))
 
         # initialize the models before training
@@ -100,14 +103,14 @@ class LookaheadModelInitial(object):
         idx += 1
         target_y_train = params[idx]
         idx += 1
+        # priors
+        inner_weights = params[idx:(idx + len(self.inner_model.weights))]
+        idx += len(self.inner_model.weights)
+        # non-sequences
         input_x_val = params[idx]
         idx += 1
         target_y_val = params[idx]
         idx += 1
-        # priors
-        inner_weights = params[idx:(idx + len(self.inner_model.weights))]
-        idx += len(self.inner_model.weights)
-        # no non-sequences
         assert len(params) == idx
 
         ypred = self.inner_model.call_on_weights(input_x_train, inner_weights)

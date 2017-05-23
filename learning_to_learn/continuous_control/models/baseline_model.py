@@ -1,32 +1,39 @@
-import itertools
-from tqdm import tqdm
 import csv
+import itertools
 import os
-import theano.tensor as T
-import theano
+
 import numpy as np
-from .dense_layer import DenseLayer
-from .util import leaky_relu, accuracy
-from .mlp import MLP
+import theano
+import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
+from tqdm import tqdm
+
+from learning_to_learn.continuous_control.util import accuracy
+from .model import ControlModel
+from .util import get_tensors
+from ..optimizers.optimizer import VariableOptimizer
 
 """
 Baseline model with constant LR
 """
 
 
-class BaselineModel(object):
+class BaselineModel(ControlModel):
     def __init__(self,
                  inner_model,
                  loss_function,
                  target_type,
-                 innner_lr0=1e-3):
+                 opt_params,
+                 inner_opt):
+        assert isinstance(inner_opt, VariableOptimizer)
+        assert len(opt_params) == len(inner_opt.opt_params)
+
+        srng = RandomStreams(123)
         input_x_train = T.fmatrix(name="input_x_train")
         target_y_train = target_type(name="target_y_train")
         input_x_val = T.fmatrix(name="input_x_val")
         target_y_val = target_type(name="target_y_val")
 
-        lr = theano.shared(np.float32(innner_lr0), name="lr")
         # current loss
         ypred = inner_model.call(input_x_train)
         loss = loss_function(target_y_train, ypred)
@@ -38,19 +45,30 @@ class BaselineModel(object):
         acc_val = accuracy(target_y_val, ypred_val)
 
         # update params
-        inner_weights_next = [w - (lr * T.grad(loss, w)) for w in inner_model.weights]
-        inner_updates = [(w, T.cast(nw, 'float32')) for w, nw in zip(inner_model.weights, inner_weights_next)]
+        opt_weights_initial = inner_opt.get_opt_weights_initial(srng, inner_model.weights)
+        opt_weights = [theano.shared(w) for w in get_tensors(opt_weights_initial)]
+        inner_params_t, opt_weights_t = inner_opt.get_updates(loss=loss,
+                                                              params=inner_model.weights,
+                                                              opt_params=opt_params,
+                                                              opt_weights=opt_weights)
+
         inputs = [input_x_train, target_y_train, input_x_val, target_y_val]
         outputs = [loss, acc, loss_val, acc_val]
+        inner_updates = [(p, p_t) for p, p_t in zip(inner_model.weights, inner_params_t)]
+        opt_weight_updates = [(w, w_t) for w, w_t in zip(opt_weights, opt_weights_t)]
         self.train_function = theano.function(inputs,
                                               outputs,
-                                              updates=inner_updates)
-        srng = RandomStreams(123)
-        self.reset_function = theano.function([], [], updates=inner_model.reset_updates(srng))
+                                              updates=inner_updates + opt_weight_updates)
+
+        reset_weights = [(w, w0) for w, w0 in zip(opt_weights, opt_weights_initial)]
+        reset_inner = inner_model.reset_updates(srng)
+        self.reset_function = theano.function([], [],
+                                              updates=reset_inner + reset_weights)
 
         # initialize the models before training
         print "Initializing model"
         self.reset_function()
+        super(BaselineModel, self).__init__()
 
     def train(self, gen, batches, output_path):
         if not os.path.exists(os.path.dirname(output_path)):
@@ -95,8 +113,8 @@ class BaselineModel(object):
                        ["Val Acc {}".format(i) for i in range(count)])
             for batch in range(batches):
                 avg = [np.mean([all_losses[k][batch][j]
-                                 for k in range(count)])
-                        for j in range(4)]
+                                for k in range(count)])
+                       for j in range(4)]
                 data = list(itertools.chain.from_iterable([
                     [all_losses[k][batch][j] for k in range(count)]
                     for j in range(4)]))

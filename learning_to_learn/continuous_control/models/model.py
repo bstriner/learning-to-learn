@@ -1,0 +1,2 @@
+class ControlModel(object):
+    pass

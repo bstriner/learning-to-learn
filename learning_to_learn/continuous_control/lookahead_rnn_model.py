@@ -12,22 +12,21 @@ from .mlp import MLP
 from theano.tensor.shared_randomstreams import RandomStreams
 from keras.optimizers import Adam
 
-
-class LookaheadModel(object):
+class LookaheadRNNModel(object):
     def __init__(self,
                  inner_model,
                  loss_function,
                  target_type,
                  lr_opt,
-                 schedule,
+                 depth,
+                 decay,
                  units=256):
         self.inner_model = inner_model
         self.loss_function = loss_function
         assert isinstance(inner_model, MLP)
-        assert schedule.ndim == 1
-        self.schedule = theano.shared(value=np.float32(schedule), name="schedule")
-        depth = schedule.shape[0]
         self.depth = depth
+        self.decay = theano.shared(value=np.float32(decay), name='decay')
+
         # input is batch
         # output is new lr
         batch = theano.shared(value=np.int32(1), name="batch")
@@ -47,21 +46,53 @@ class LookaheadModel(object):
         lr_input = T.reshape(T.log(batch_idxs), (-1, 1))
         lr_output = lr_model.call(lr_input)[:, 0]  # (depth,)
 
-        testf = theano.function([], [lr_input, lr_output])
-        t = testf()
-        print "Test output"
-        print t
+        # Model inputs
+        input_x_train = T.ftensor3(name="input_x_train")
+        target_y_train = T.imatrix(name="target_y_train")
+        input_x_val = T.ftensor3(name="input_x_val")
+        target_y_val = T.imatrix(name="target_y_val")
+        inputs = [input_x_train, target_y_train, input_x_val, target_y_val]
 
-        inputs = []
-        losses = []
-        # unroll optimization
-        weights_t = inner_model.weights
-        for d in range(depth):
-            input_x_train = T.fmatrix(name="input_x_train")
-            target_y_train = target_type(name="target_y_train")
-            input_x_val = T.fmatrix(name="input_x_val")
-            target_y_val = target_type(name="target_y_val")
-            inputs += [input_x_train, target_y_train, input_x_val, target_y_val]
+        # Scan over iterations of SGD
+        outputs_info = ([None] * 5) + inner_model.weights
+        sequences = [lr_output, input_x_train, target_y_train, input_x_val, target_y_val]
+        ret, _ = theano.scan(self.scan_fun, sequences=sequences, outputs_info=outputs_info)
+        idx = 0
+        loss = ret[idx]
+        idx += 1
+        acc = ret[idx]
+        idx += 1
+        loss_val = ret[idx]
+        idx += 1
+        acc_val = ret[idx]
+        idx += 1
+        loss_next_val = ret[idx]
+        idx += 1
+        weights_next = ret[idx:(idx + len(self.inner_model.weights))]
+        idx += len(self.inner_model.weights)
+        assert len(ret) == idx
+
+        # Model to predict future discounted loss
+        # Iterate over training loss and lr to predict validation loss
+        rnn_model = MLP([DenseLayer(units, units, activation=leaky_relu, name="rnn_1"),
+                        DenseLayer(units, units, activation=leaky_relu, name="rnn_2"),
+                        DenseLayer(units, units, activation=leaky_relu, name="rnn_3"),
+                        DenseLayer(units, 1, name="rnn_4")])
+        loss_next_val_h0 = theano.shared(np.float32([0]), name='loss_next_val_h0')
+        loss_next_val_shifted = T.concatenate((loss_next_val_h0, loss_next_val[:-1]),axis=0)
+        loss_next_val_predicted = rnn_model.call(loss, lr_input, lr_output, loss_next_val_shifted)
+
+        # r(t) = loss(t) + decay*r(t+1)
+        rnn_loss = T.mean(T.abs_(loss_next_val_predicted-loss_next_val))
+
+
+        weighted_loss = T.sum(loss_next_val * self.schedule)
+        lr_updates = lr_opt.get_updates(lr_model.weights, {}, weighted_loss)
+        inner_updates = [(w, wn[0, ...]) for w, wn in zip(inner_model.weights, weights_next)]
+        other_updates = [
+            (batch, batch + 1)
+        ]
+        updates = inner_updates + lr_updates + other_updates
             # current loss
             ypred = inner_model.call_on_weights(input_x_train, weights_t)
             loss = loss_function(target_y_train, ypred)
@@ -153,6 +184,45 @@ class LookaheadModel(object):
                     tqdm.write("Epoch {}: Loss: {}, Val Loss: {}, LR: {}".format(epoch,
                                                                                  losses[2], losses[3], losses[4]))
     """
+
+
+    def scan_fun(self, *params):
+        print "Params"
+        for i, p in enumerate(params):
+            print "{}: {}, {}, {}".format(i, p, p.ndim, p.dtype)
+        # sequences, priors, non-sequences
+        # sequences
+        idx = 0
+        lr_t = params[idx]
+        idx += 1
+        input_x_train = params[idx]
+        idx += 1
+        target_y_train = params[idx]
+        idx += 1
+        input_x_val = params[idx]
+        idx += 1
+        target_y_val = params[idx]
+        idx += 1
+        # priors
+        inner_weights = params[idx:(idx + len(self.inner_model.weights))]
+        idx += len(self.inner_model.weights)
+        # no non-sequences
+        assert len(params) == idx
+
+        ypred = self.inner_model.call_on_weights(input_x_train, inner_weights)
+        loss = self.loss_function(target_y_train, ypred)
+        acc = accuracy(target_y_train, ypred)
+        ypred_val = self.inner_model.call_on_weights(input_x_val, inner_weights)
+        loss_val = self.loss_function(target_y_val, ypred_val)
+        acc_val = accuracy(target_y_val, ypred_val)
+
+        # update weights
+        weights_t = [w - (lr_t * T.grad(loss, w)) for w in inner_weights]
+
+        # next val loss
+        ypred_next_val = self.inner_model.call_on_weights(input_x_val, weights_t)
+        loss_next_val = self.loss_function(target_y_val, ypred_next_val)
+        return [loss, acc, loss_val, acc_val, loss_next_val] + weights_t
 
     def validate(self, gen, batches, validation_epochs, output_path):
         if not os.path.exists(os.path.dirname(output_path)):
