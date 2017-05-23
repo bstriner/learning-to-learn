@@ -3,6 +3,7 @@ import theano
 import theano.tensor as T
 
 from .optimizer import VariableOptimizer
+from ..util import logit_np
 
 
 class VariableAdam(VariableOptimizer):
@@ -50,3 +51,8 @@ class VariableAdam(VariableOptimizer):
         ms = [T.zeros_like(p) for p in params]
         vs = [T.zeros_like(p) for p in params]
         return ms + vs
+
+    def get_opt_params_initial(self):
+        params0 = np.array([0.001, 0.9, 0.999]).reshape(1, -1)
+        init = logit_np(params0).astype(np.float32)
+        return init

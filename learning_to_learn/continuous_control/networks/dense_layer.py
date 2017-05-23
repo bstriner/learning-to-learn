@@ -1,7 +1,7 @@
 import theano.tensor as T
 import theano
 import numpy as np
-from .util import random_uniform_init_T
+from learning_to_learn.continuous_control.util import random_uniform_init_T
 
 
 class DenseLayer(object):

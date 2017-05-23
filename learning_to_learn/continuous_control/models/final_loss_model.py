@@ -9,11 +9,12 @@ from theano.tensor.shared_randomstreams import RandomStreams
 from tqdm import tqdm
 
 from learning_to_learn.continuous_control.networks.mlp import MLP
-from .util import accuracy, cast_updates
-from ..continuous_control.optimizers.optimizer import VariableOptimizer
+from .model import ControlModel
+from ..optimizers.optimizer import VariableOptimizer
+from ..util import accuracy, cast_updates
 
 
-class LookaheadModelInitialOnlyEnd(object):
+class FinalLossModel(ControlModel):
     def __init__(self,
                  inner_model,
                  loss_function,
@@ -36,9 +37,13 @@ class LookaheadModelInitialOnlyEnd(object):
         self.opt_weight_count = len(opt_weights)
 
         # Build LR prediction model
-        opt_params_init = np.zeros((depth, opt_param_count), dtype='float32')
+        opt_params_init = np.repeat(inner_opt.get_opt_params_initial(), depth, axis=0)
         opt_params_p = theano.shared(opt_params_init.astype(np.float32), name="opt_param_schedule")
         opt_params = T.nnet.sigmoid(opt_params_p)
+
+        print "Opt params"
+        f = theano.function([], opt_params)
+        print f()
 
         input_x_train = T.ftensor3(name="input_x_train")  # (depth, n, units)
         target_y_train = T.imatrix(name="target_y_train")  # (depth, n)
@@ -63,9 +68,9 @@ class LookaheadModelInitialOnlyEnd(object):
         idx += 1
         loss_next_val = ret[idx]
         idx += 1
-        params_t = ret[idx:(idx + len(self.inner_model.weights))]
+        weights_next = ret[idx:(idx + len(self.inner_model.weights))]
         idx += len(self.inner_model.weights)
-        opt_weights_t = ret[idx:(idx+self.opt_weight_count)]
+        opt_weights_next = ret[idx:(idx + self.opt_weight_count)]
         idx += self.opt_weight_count
         assert len(ret) == idx
 
@@ -77,8 +82,7 @@ class LookaheadModelInitialOnlyEnd(object):
                   input_x_val,
                   target_y_val]
 
-        print "opt_param_count: {}".format(opt_param_count)
-        outputs = [loss, acc, loss_val, acc_val] + [opt_params[:,i] for i in range(self.inner_opt.opt_param_count)]
+        outputs = [loss, acc, loss_val, acc_val] + [opt_params[:, i] for i in range(self.inner_opt.opt_param_count)]
 
         self.train_function = theano.function(inputs,
                                               final_loss,
@@ -88,6 +92,7 @@ class LookaheadModelInitialOnlyEnd(object):
         print "Initializing model"
         self.validation_function = theano.function(inputs,
                                                    outputs)
+        super(FinalLossModel, self).__init__()
 
     def scan_fun(self, *params):
         print "Params"
@@ -153,13 +158,11 @@ class LookaheadModelInitialOnlyEnd(object):
                         for name in self.inner_opt.opt_param_names
                         for i in range(validation_epochs)])
             metriccount = 4 + self.inner_opt.opt_param_count
-            print "metriccount: {}".format(metriccount)
             for batch in range(self.depth):
                 avgs = [np.mean([epoch_data[e][metric][batch]
                                  for e in range(validation_epochs)])
                         for metric in range(metriccount)]
-                data = [epoch_data[e][metric][batch]
-                        for metric in range(metriccount)
+                data = [epoch_data[e][metric][batch] for metric in range(metriccount)
                         for e in range(validation_epochs)]
                 w.writerow([batch] + avgs + data)
 

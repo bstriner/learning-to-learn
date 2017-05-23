@@ -3,6 +3,7 @@ import theano
 import theano.tensor as T
 
 from .optimizer import VariableOptimizer
+from ..util import logit_np
 
 
 class VariableSGD(VariableOptimizer):
@@ -14,7 +15,6 @@ class VariableSGD(VariableOptimizer):
         self.opt_param_names = ["lr"]
         super(VariableSGD, self).__init__("SGD")
 
-
     def get_updates(self, loss, params, opt_params, opt_weights):
         assert len(opt_params) == 1
         assert len(opt_weights) == 0
@@ -24,3 +24,8 @@ class VariableSGD(VariableOptimizer):
 
     def get_opt_weights_initial(self, srng, params):
         return []
+
+    def get_opt_params_initial(self):
+        params0 = np.array([0.01]).reshape(1, -1)
+        init = logit_np(params0).astype(np.float32)
+        return init

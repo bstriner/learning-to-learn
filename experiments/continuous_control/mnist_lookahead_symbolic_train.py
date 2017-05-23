@@ -1,12 +1,11 @@
-import theano.tensor as T
-from learning_to_learn.continuous_control.dense_layer import DenseLayer
-from learning_to_learn.continuous_control.util import leaky_relu, nll_loss
-from learning_to_learn.continuous_control.mnist import mnist_batch_generator, mnist_generator
-from learning_to_learn.continuous_control.internal_model import create_model
-from learning_to_learn.continuous_control.mlp import MLP
-from learning_to_learn.continuous_control.lookahead_model_symbolic import LookaheadModelSymbolic
-from keras.optimizers import Adam
 import numpy as np
+import theano.tensor as T
+from keras.optimizers import Adam
+
+from learning_to_learn.continuous_control.internal_model import create_model
+from learning_to_learn.continuous_control.lookahead_model_symbolic import LookaheadModelSymbolic
+from learning_to_learn.continuous_control.mnist import mnist_batch_generator
+from learning_to_learn.continuous_control.util import leaky_relu, nll_loss
 
 
 def main():

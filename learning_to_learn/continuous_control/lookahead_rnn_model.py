@@ -1,16 +1,17 @@
-import gc
-from tqdm import tqdm
 import csv
 import itertools
 import os
-import theano.tensor as T
-import theano
+
 import numpy as np
-from .dense_layer import DenseLayer
-from .util import leaky_relu, accuracy, logit, logit_np, cast_updates
-from .mlp import MLP
+import theano
+import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
-from keras.optimizers import Adam
+from tqdm import tqdm
+
+from learning_to_learn.continuous_control.networks.dense_layer import DenseLayer
+from learning_to_learn.continuous_control.networks.mlp import MLP
+from .util import leaky_relu, accuracy, cast_updates
+
 
 class LookaheadRNNModel(object):
     def __init__(self,

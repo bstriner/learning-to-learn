@@ -1,7 +1,8 @@
-from learning_to_learn.continuous_control.util import leaky_relu, nll_loss
-from learning_to_learn.continuous_control.mlp import MLP
-from learning_to_learn.continuous_control.dense_layer import DenseLayer
 import theano.tensor as T
+
+from learning_to_learn.continuous_control.networks.dense_layer import DenseLayer
+from learning_to_learn.continuous_control.networks.mlp import MLP
+from learning_to_learn.continuous_control.util import leaky_relu
 
 
 def create_model(input_dim=28 * 28,

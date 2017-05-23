@@ -1,6 +1,14 @@
 import warnings
-import theano.tensor as T
+
 import numpy as np
+import theano
+import theano.tensor as T
+
+
+def get_tensors(tensors):
+    assert isinstance(tensors, (list, tuple))
+    f = theano.function([], tensors)
+    return f()
 
 
 def leaky_relu(x):
