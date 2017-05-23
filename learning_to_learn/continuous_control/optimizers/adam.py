@@ -18,7 +18,7 @@ class VariableAdam(VariableOptimizer):
         self.lr = theano.shared(value=self.initial_lr, name='adam_lr')
         self.beta_1 = theano.shared(value=self.initial_beta_1, name='adam_beta_1')
         self.beta_2 = theano.shared(value=self.initial_beta_2, name='adam_beta_2')
-        self.opt_params = [self.lr]
+        self.opt_params = [self.lr, self.beta_1, self.beta_2]
         self.opt_param_count = len(self.opt_params)
         self.opt_param_names = ["lr", "beta_1", "beta_2"]
         super(VariableAdam, self).__init__("Adam")
@@ -39,7 +39,7 @@ class VariableAdam(VariableOptimizer):
             g = T.grad(loss, p)
             m_t = (beta_1 * m) + ((1. - beta_1) * g)
             v_t = (beta_2 * v) + ((1. - beta_2) * T.square(g))
-            p_t = p - (lr * m_t / T.sqrt(v_t) + self.epsilon)
+            p_t = p - (lr * m_t / (T.sqrt(v_t + self.epsilon) + self.epsilon))
             param_updates.append(p_t)
             m_updates.append(m_t)
             v_updates.append(v_t)

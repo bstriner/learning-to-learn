@@ -90,3 +90,4 @@ ENV/
 /experiments/output
 /.idea
 /experiments/continuous_control/output
+/experiments/continuous_control/sgd/output
