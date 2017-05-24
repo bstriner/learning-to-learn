@@ -8,9 +8,10 @@ from keras.optimizers import Optimizer
 from theano.tensor.shared_randomstreams import RandomStreams
 from tqdm import tqdm
 
-from learning_to_learn.continuous_control.networks.mlp import MLP
 from .model import ControlModel
+from ..networks.mlp import MLP
 from ..optimizers.optimizer import VariableOptimizer
+from ..serialization import load_latest, save
 from ..util import accuracy, cast_updates
 
 
@@ -20,30 +21,31 @@ class FinalLossModel(ControlModel):
                  loss_function,
                  lr_opt,
                  inner_opt,
+                 parameterization,
                  depth):
         self.inner_model = inner_model
         self.loss_function = loss_function
         self.lr_opt = lr_opt
         self.inner_opt = inner_opt
+        self.parameterization = parameterization
         self.depth = depth
         assert isinstance(lr_opt, Optimizer)
         assert isinstance(inner_opt, VariableOptimizer)
         assert isinstance(inner_model, MLP)
         srng = RandomStreams(123)
 
+        # optimizer weights
         initial_weights = [u[1] for u in inner_model.reset_updates(srng=srng)]
-        opt_param_count = inner_opt.opt_param_count
         opt_weights = inner_opt.get_opt_weights_initial(srng, inner_model.weights)
         self.opt_weight_count = len(opt_weights)
+        # optimizer params
+        self.opt_param_params, self.opt_params = parameterization(depth,
+                                                                  inner_opt.get_opt_params_initial())
+        self.opt_param_count = len(self.opt_params)
 
-        # Build LR prediction model
-        opt_params_init = np.repeat(inner_opt.get_opt_params_initial(), depth, axis=0)
-        opt_params_p = theano.shared(opt_params_init.astype(np.float32), name="opt_param_schedule")
-        opt_params = T.nnet.sigmoid(opt_params_p)
-
-        #print "Opt params"
-        #f = theano.function([], opt_params)
-        #print f()
+        # print "Opt params"
+        # f = theano.function([], opt_params)
+        # print f()
 
         input_x_train = T.ftensor3(name="input_x_train")  # (depth, n, units)
         target_y_train = T.imatrix(name="target_y_train")  # (depth, n)
@@ -51,7 +53,7 @@ class FinalLossModel(ControlModel):
         target_y_val = T.ivector(name="target_y_val")  # (depth, n)
 
         outputs_info = ([None] * 5) + initial_weights + opt_weights
-        sequences = [opt_params, input_x_train, target_y_train]
+        sequences = self.opt_params + [input_x_train, target_y_train]
         non_sequences = [input_x_val, target_y_val]
         ret, _ = theano.scan(self.scan_fun,
                              sequences=sequences,
@@ -76,13 +78,13 @@ class FinalLossModel(ControlModel):
 
         final_loss = loss_next_val[-1]
         # weighted_loss = T.sum(loss_next_val * self.schedule)
-        lr_updates = lr_opt.get_updates([opt_params_p], {}, final_loss)
+        lr_updates = lr_opt.get_updates(self.opt_param_params, {}, final_loss)
         inputs = [input_x_train,
                   target_y_train,
                   input_x_val,
                   target_y_val]
 
-        outputs = [loss, acc, loss_val, acc_val] + [opt_params[:, i] for i in range(self.inner_opt.opt_param_count)]
+        outputs = [loss, acc, loss_val, acc_val] + self.opt_params
 
         self.train_function = theano.function(inputs,
                                               final_loss,
@@ -92,17 +94,18 @@ class FinalLossModel(ControlModel):
         print("Initializing model")
         self.validation_function = theano.function(inputs,
                                                    outputs)
+        self.weights = self.opt_param_params + lr_opt.weights
         super(FinalLossModel, self).__init__()
 
     def scan_fun(self, *params):
-        #print "Params"
-        #for i, p in enumerate(params):
+        # print "Params"
+        # for i, p in enumerate(params):
         #    print "{}: {}, {}, {}".format(i, p, p.ndim, p.dtype)
         # sequences, priors, non-sequences
         # sequences
         idx = 0
-        opt_params = params[idx]
-        idx += 1
+        opt_params = params[idx:(idx + self.opt_param_count)]
+        idx += self.opt_param_count
         input_x_train = params[idx]
         idx += 1
         target_y_train = params[idx]
@@ -169,16 +172,18 @@ class FinalLossModel(ControlModel):
     def train(self, gen, epochs, batches, validation_epochs, frequency, output_path):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
+        initial_epoch = load_latest(self.weights, output_path, "model-(\d+).h5")
 
-        self.validate(gen=gen, validation_epochs=validation_epochs,
-                      output_path=os.path.join(output_path, "initial.csv"))
+        if initial_epoch == 0:
+            self.validate(gen=gen, validation_epochs=validation_epochs,
+                          output_path=os.path.join(output_path, "initial.csv"))
 
         with open(os.path.join(output_path, "history.csv"), 'wb') as f:
             w = csv.writer(f)
             w.writerow(["Epoch",
                         "Loss"])
             f.flush()
-            it1 = tqdm(range(epochs), desc="Training")
+            it1 = tqdm(range(initial_epoch, epochs), desc="Training")
             for epoch in it1:
                 losses = []
                 it2 = tqdm(range(batches), desc="Epoch {}".format(epoch))
@@ -193,5 +198,6 @@ class FinalLossModel(ControlModel):
                 f.flush()
 
                 if (epoch + 1) % frequency == 0:
+                    save(self.weights, os.path.join(output_path, "model-{:09}.h5".format(epoch)))
                     self.validate(gen=gen, validation_epochs=validation_epochs,
                                   output_path=os.path.join(output_path, "epoch-{:09d}.csv".format(epoch)))

@@ -26,6 +26,4 @@ class VariableSGD(VariableOptimizer):
         return []
 
     def get_opt_params_initial(self):
-        params0 = np.array([0.01]).reshape(1, -1)
-        init = logit_np(params0).astype(np.float32)
-        return init
+        return [0.01]

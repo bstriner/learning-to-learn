@@ -1,6 +1,6 @@
 from learning_to_learn.continuous_control.internal_model import create_model
-from learning_to_learn.continuous_control.models.final_loss_model import FinalLossModel
 from learning_to_learn.continuous_control.mnist import mnist_multiple_batch_generator
+from learning_to_learn.continuous_control.models.final_loss_model import FinalLossModel
 from learning_to_learn.continuous_control.util import leaky_relu, nll_loss
 
 
@@ -8,6 +8,7 @@ def final_loss_experiment(output_path,
                           inner_opt,
                           lr_opt,
                           depth,
+                          parameterization,
                           batch_size=32,
                           epochs=1000,
                           validation_epochs=64,
@@ -23,10 +24,11 @@ def final_loss_experiment(output_path,
                                units=inner_units,
                                internal_activation=leaky_relu)
     lr_model = FinalLossModel(inner_model=inner_model,
-                                            loss_function=nll_loss,
-                                            lr_opt=lr_opt,
-                                            inner_opt=inner_opt,
-                                            depth=depth,)
+                              loss_function=nll_loss,
+                              lr_opt=lr_opt,
+                              parameterization=parameterization,
+                              inner_opt=inner_opt,
+                              depth=depth)
     lr_model.train(gen=gen,
                    epochs=epochs,
                    validation_epochs=validation_epochs,

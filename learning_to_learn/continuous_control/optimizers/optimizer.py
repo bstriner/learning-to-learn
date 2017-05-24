@@ -15,3 +15,6 @@ class VariableOptimizer(object):
 
     def get_opt_weights_initial(self, srng, params):
         raise NotImplementedError()
+
+    def get_opt_params_initial(self):
+        raise NotImplementedError()
