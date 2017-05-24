@@ -8,8 +8,10 @@ def main():
     lr_opt = Adam(1e-4)
     inner_opt = VariableAdam()
     depth = 100
+    frequency = 50
     output_path = "output/mnist_adam_final_loss_100"
     final_loss_experiment(lr_opt=lr_opt,
+                          frequency=frequency,
                           inner_opt=inner_opt,
                           output_path=output_path,
                           depth=depth)

@@ -41,9 +41,9 @@ class FinalLossModel(ControlModel):
         opt_params_p = theano.shared(opt_params_init.astype(np.float32), name="opt_param_schedule")
         opt_params = T.nnet.sigmoid(opt_params_p)
 
-        print "Opt params"
-        f = theano.function([], opt_params)
-        print f()
+        #print "Opt params"
+        #f = theano.function([], opt_params)
+        #print f()
 
         input_x_train = T.ftensor3(name="input_x_train")  # (depth, n, units)
         target_y_train = T.imatrix(name="target_y_train")  # (depth, n)
@@ -89,15 +89,15 @@ class FinalLossModel(ControlModel):
                                               updates=cast_updates(lr_updates))
 
         # initialize the models before training
-        print "Initializing model"
+        print("Initializing model")
         self.validation_function = theano.function(inputs,
                                                    outputs)
         super(FinalLossModel, self).__init__()
 
     def scan_fun(self, *params):
-        print "Params"
-        for i, p in enumerate(params):
-            print "{}: {}, {}, {}".format(i, p, p.ndim, p.dtype)
+        #print "Params"
+        #for i, p in enumerate(params):
+        #    print "{}: {}, {}, {}".format(i, p, p.ndim, p.dtype)
         # sequences, priors, non-sequences
         # sequences
         idx = 0
