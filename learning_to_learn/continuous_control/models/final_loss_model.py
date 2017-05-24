@@ -52,7 +52,7 @@ class FinalLossModel(ControlModel):
         input_x_val = T.fmatrix(name="input_x_val")  # (depth, n, units)
         target_y_val = T.ivector(name="target_y_val")  # (depth, n)
 
-        outputs_info = ([None] * 5) + initial_weights + opt_weights
+        outputs_info = ([None] * 4) + initial_weights + opt_weights
         sequences = self.opt_params + [input_x_train, target_y_train]
         non_sequences = [input_x_val, target_y_val]
         ret, _ = theano.scan(self.scan_fun,
@@ -68,15 +68,13 @@ class FinalLossModel(ControlModel):
         idx += 1
         acc_val = ret[idx]
         idx += 1
-        loss_next_val = ret[idx]
-        idx += 1
         weights_next = ret[idx:(idx + len(self.inner_model.weights))]
         idx += len(self.inner_model.weights)
         opt_weights_next = ret[idx:(idx + self.opt_weight_count)]
         idx += self.opt_weight_count
         assert len(ret) == idx
 
-        final_loss = loss_next_val[-1]
+        final_loss = loss_val[-1]
         # weighted_loss = T.sum(loss_next_val * self.schedule)
         lr_updates = lr_opt.get_updates(self.opt_param_params, {}, final_loss)
         inputs = [input_x_train,
@@ -133,10 +131,7 @@ class FinalLossModel(ControlModel):
         opt_params_array = [opt_params[i] for i in range(self.inner_opt.opt_param_count)]
         params_t, opt_weights_t = self.inner_opt.get_updates(loss, inner_weights, opt_params_array, opt_weights)
 
-        # next val loss
-        ypred_next_val = self.inner_model.call_on_weights(input_x_val, params_t)
-        loss_next_val = self.loss_function(target_y_val, ypred_next_val)
-        return [loss, acc, loss_val, acc_val, loss_next_val] + params_t + opt_weights_t
+        return [loss, acc, loss_val, acc_val] + params_t + opt_weights_t
 
     def validate(self, gen, validation_epochs, output_path):
         if not os.path.exists(os.path.dirname(output_path)):

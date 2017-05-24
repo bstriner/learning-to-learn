@@ -47,6 +47,6 @@ def load_latest(weights, directory, fmt):
         path, epoch = latest
         print("Loading epoch {}: {}".format(epoch, path))
         load(weights, path)
-        return epoch
+        return epoch+1
     else:
         return 0
